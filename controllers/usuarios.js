@@ -1,39 +1,69 @@
+const Usuario = require('../models/usuario')
+const bcryptjs = require('bcryptjs')
 
-const usuariosGet = (req, res ) => {
 
-    const params=req.query
+const usuariosGet = async (req, res) => {
+    const {limite = 5, desde = 0} = req.query
+
+
+    const [total,usuarios]=await Promise.all([Usuario.countDocuments({estado: true}),
+        Usuario.find({estado: true})
+        .skip(+desde)
+        .limit(+limite)])
+
     res.json({
-        msg: 'get API controlador',
-        params
+        total,
+        usuarios
     })
 
 }
 
-const usuariosPut = (req, res) => {
-    const {id}=req.params
+const usuariosPut = async (req, res) => {
+    const {id} = req.params
+    const {_id, password, google, correo, ...resto} = req.body
+    //TODO: validaar contra base de datos
+    if (password) {
+        const salt = bcryptjs.genSaltSync()
+        resto.password = bcryptjs.hashSync(password, salt)
+
+    }
+    const usuario = await Usuario.findByIdAndUpdate(id, resto)
+
+
     res.json({
         msg: 'put API controlador',
-        id
+        usuario
     })
 
 }
 
-const usuariosPost = (req, res) => {
-    const body=req.body
+const usuariosPost = async (req, res) => {
+
+
+    const {nombre, correo, password, rol} = req.body
+    const usuario = new Usuario({nombre, correo, password, rol})
+    //encriptarlla contrasena
+    const salt = bcryptjs.genSaltSync();
+    usuario.password = bcryptjs.hashSync(password, salt)
+    //guardar en db
+    await usuario.save()
+
     res.status(201).json({
         msg: 'post API controlador',
-        body
+        usuario
     })
 
 }
 
-const usuariosDelete = (req, res) => {
+const usuariosDelete = async (req, res) => {
+    const {id}=req.params
+    const usuario=await Usuario.findByIdAndUpdate(id,{estado:false})
     res.json({
-        msg: 'delete API controlador'
+        usuario
     })
 
 }
-const usuariosPatch=(req, res) => {
+const usuariosPatch = (req, res) => {
     res.json({
         msg: 'Patch API controlador'
     })
